@@ -52,9 +52,12 @@ private:
 
     /// Script file name.
     String scriptFileName_;
-    
 #ifdef ENABLE_ANGELSCRIPT
     /// Script file.
     SharedPtr<ScriptFile> scriptFile_;
+#endif
+#ifdef ENABLE_LUA
+    // Lua immediate code to run
+    String immediateCode_;
 #endif
 };

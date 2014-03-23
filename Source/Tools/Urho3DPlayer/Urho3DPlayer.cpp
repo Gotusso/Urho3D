@@ -64,19 +64,26 @@ void Urho3DPlayer::Setup()
     // Check for script file name
     const Vector<String>& arguments = GetArguments();
     String scriptFileName;
-    for (unsigned i = 0; i < arguments.Size(); ++i)
+    if (arguments.Size() > 0 && arguments[arguments.Size() - 1][0] != '-')
     {
-        if (arguments[i][0] != '-')
+        scriptFileName_ = GetInternalPath(arguments[arguments.Size() - 1]);
+    }
+
+    #ifdef ENABLE_LUA
+    for (unsigned i = 0; i < arguments.Size() - 1; ++i)
+    {
+        if (arguments[i] == "-e")
         {
-            scriptFileName_ = GetInternalPath(arguments[i]);
+            immediateCode_ = arguments[i + 1];
             break;
         }
-    }
+    }    
+    #endif
 
     // Show usage if not found
     if (scriptFileName_.Empty())
     {
-        ErrorExit("Usage: Urho3DPlayer <scriptfile> [options]\n\n"
+        ErrorExit("Usage: Urho3DPlayer [options] <scriptfile>\n\n"
             "The script file should implement the function void Start() for initializing the "
             "application and subscribing to all necessary events, such as the frame update.\n"
             #ifndef WIN32
@@ -109,6 +116,9 @@ void Urho3DPlayer::Setup()
             "-nosound     Disable sound output\n"
             "-noip        Disable sound mixing interpolation\n"
             "-sm2         Force SM2.0 rendering\n"
+            #endif
+            #if ! defined(WIN32) && defined(ENABLE_LUA)
+            "-e <code>    Run Lua immediate code\n"
             #endif
         );
     }
@@ -147,6 +157,11 @@ void Urho3DPlayer::Start()
         LuaScript* luaScript = new LuaScript(context_);
         context_->RegisterSubsystem(luaScript);
 
+        // Evaluate the code passed from the command line
+        if (! immediateCode_.Empty()) {
+            luaScript->ExecuteString(immediateCode_);
+        }
+        
         // If script loading is successful, proceed to main loop
         if (luaScript->ExecuteFile(scriptFileName_))
         {
